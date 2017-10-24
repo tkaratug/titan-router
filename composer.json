@@ -17,8 +17,5 @@
     },
     "autoload": {
         "psr-4": {"Titan\\": "src/Titan"}
-    },
-    "config": {
-        "preferred-install": "dist"
     }
 }
