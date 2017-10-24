@@ -1,0 +1,24 @@
+{
+    "name": "tkaratug/titan-router",
+    "description": "A simple and lightweight PHP router",
+    "keywords": ["router", "routing"],
+    "homepage": "https://github.com/tkaratug/titan-router",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Turan Karatuğ",
+            "email": "tkaratug@hotmail.com.tr",
+            "homepage": "http://www.turankaratug.com"
+        }
+    ],
+    "require": {
+        "php": ">=5.4.0"
+    },
+    "autoload": {
+        "psr-4": {"Titan\\": "src/Titan"}
+    },
+    "config": {
+        "preferred-install": "dist"
+    }
+}
