@@ -206,38 +206,38 @@ class Router
                         break;
                 }
 
-                $matched++;
-
                 // Checking request method
-                if (self::getRequestMethod() != $val['method'])
-                    self::pageNotFound();
+                if (self::getRequestMethod() === $val['method']) {
+                    $matched++;
 
-                array_shift($params);
+                    array_shift($params);
 
-                // Checking middlewares
-                if (array_key_exists('middlewares', $val)) {
-                    foreach ($val['middlewares'] as $midKey => $midVal) {
-                        list($controller, $method) = explode('@', $midVal['callback']);
+                    // Checking middlewares
+                    if (array_key_exists('middlewares', $val)) {
+                        foreach ($val['middlewares'] as $midKey => $midVal) {
+                            list($controller, $method) = explode('@', $midVal['callback']);
 
-                        if (class_exists($controller)) {
-                            call_user_func_array([new $controller, $method], []);
+                            if (class_exists($controller)) {
+                                call_user_func_array([new $controller, $method], []);
+                            }
                         }
                     }
-                }
 
-                if (is_callable($val['callback'])) {
-                    call_user_func_array($val['callback'], array_values($params));
-                } else if (stripos($val['callback'], '@') !== false) {
-                    list($controller, $method) = explode('@', $val['callback']);
+                    if (is_callable($val['callback'])) {
+                        call_user_func_array($val['callback'], array_values($params));
+                    } else if (stripos($val['callback'], '@') !== false) {
+                        list($controller, $method) = explode('@', $val['callback']);
 
-                    if (class_exists($controller)) {
-                        call_user_func_array([new $controller, $method], array_values($params));
-                    } else {
-                        self::pageNotFound();
+                        if (class_exists($controller)) {
+                            call_user_func_array([new $controller, $method], array_values($params));
+                        } else {
+                            self::pageNotFound();
+                        }
                     }
+
+                    break;
                 }
 
-                break;
             }
 
         }
