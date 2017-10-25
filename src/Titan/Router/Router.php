@@ -200,6 +200,7 @@ class Router
 
             if (preg_match($val['pattern'], self::getCurrentUri(), $params)) {
 
+                // Checking domain
                 if (array_key_exists('domain', $val)) {
                     if ($val['domain'] !== $_SERVER['SERVER_NAME'])
                         break;
@@ -265,7 +266,7 @@ class Router
      */
     public static function getCurrentUri()
     {
-        // Get the current Request URI and remove rewrite base path from it (= allows one to run the router in a sub folder)
+        // Get the current Request URI and remove rewrite base path from it
         $uri = substr($_SERVER['REQUEST_URI'], strlen(self::getBasePath()));
 
         // Don't take query params into account on the URL
@@ -300,7 +301,7 @@ class Router
             return getallheaders();
         }
 
-        // Method getallheaders() not available: manually extract 'm
+        // If getallheaders() is not available, use that
         $headers = [];
         foreach ($_SERVER as $name => $value) {
             if ((substr($name, 0, 5) == 'HTTP_') || ($name == 'CONTENT_TYPE') || ($name == 'CONTENT_LENGTH')) {
@@ -312,7 +313,7 @@ class Router
     }
 
     /**
-     * Get the request method used, taking overrides into account
+     * Get Request Method
      *
      * @return string
      */
