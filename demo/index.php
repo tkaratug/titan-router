@@ -7,7 +7,7 @@ use \Titan\Router\Router as Route;
 Route::get('/', 'Home@index');
 
 // http://example.com/hello/johndoe
-Route::get('/hello/{alfa}', function($name){
+Route::get('/hello/{alpha}', function($name){
 	echo 'Hello ' . $name;
 });
 
