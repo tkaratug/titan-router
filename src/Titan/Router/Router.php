@@ -30,6 +30,9 @@ class Router
     // Not Found Callback
     private static $notFound    = '';
 
+    // Groups
+    private static $groups      = [];
+    
     // Group Counter
     private static $groupped    = 0;
 
@@ -59,12 +62,24 @@ class Router
     {
         self::$groupped++;
 
+        self::$groups[] = [
+            'baseRoute'     => self::$baseRoute,
+            'middlewares'   => self::$middlewares,
+            'namespace'     => self::$namespace,
+            'domain'        => self::$domain
+        ];
+
         // Call the Callable
         call_user_func($callback);
 
         self::$groupped--;
 
-        if (self::$groupped == 0) {
+        if (self::$groupped > 0) {
+            self::$baseRoute    = self::$groups[self::$groupped-1]['baseRoute'];
+            self::$middlewares  = self::$groups[self::$groupped-1]['middlewares'];
+            self::$namespace    = self::$groups[self::$groupped-1]['namespace'];
+            self::$domain       = self::$groups[self::$groupped-1]['domain'];
+        } else {
             // Reset Base Route
             self::$baseRoute    = '/';
 
@@ -76,6 +91,9 @@ class Router
 
             // Reset Domain
             self::$domain       = '';
+
+            // Reset Group Counter
+            self::$groupped     = 0;
         }
     }
 
@@ -194,7 +212,9 @@ class Router
      */
     public static function execute()
     {
-        $matched = 0;
+        $matched        = 0;
+        $methodCheck    = true;
+        $domainCheck    = true;
 
         foreach (self::$routes as $key => $val) {
 
@@ -202,12 +222,21 @@ class Router
 
                 // Checking domain
                 if (array_key_exists('domain', $val)) {
-                    if ($val['domain'] !== $_SERVER['SERVER_NAME'])
-                        break;
+                    if ($val['domain'] !== trim(str_replace('www.', '', $_SERVER['SERVER_NAME']), '/')) {
+                        $domainCheck = false;
+                    } else {
+                        $domainCheck = true;
+                    }
                 }
 
                 // Checking request method
-                if (self::getRequestMethod() === $val['method']) {
+                if ($val['method'] !== self::getRequestMethod()) {
+                    $methodCheck = false;
+                } else {
+                    $methodCheck = true;
+                }
+
+                if ($domainCheck && $methodCheck) {
                     $matched++;
 
                     array_shift($params);
@@ -237,7 +266,7 @@ class Router
 
                     break;
                 }
-
+                
             }
 
         }
