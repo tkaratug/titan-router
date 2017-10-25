@@ -338,8 +338,6 @@ class Router
         return $method;
     }
 
-    // ============================================================================ //
-
     /**
      * Add a Route Using Get Method
      *
