@@ -157,7 +157,7 @@ class Router
      * @param string $pattern
      * @param string|callable $callback
      */
-    public static function route($methods, $pattern, $callback)
+    public static function route($method, $pattern, $callback)
     {
         if ($pattern == '/')
             $pattern    = self::$baseRoute . trim($pattern, '/');
@@ -181,30 +181,23 @@ class Router
                 $closure = self::$namespaces['controllers'] . '\\' . $callback;
         }
 
-        $methods    = explode('|', $methods);
+        $routeArray = [
+            'uri'       => $uri,
+            'method'    => $method,
+            'pattern'   => $pattern,
+            'callback'  => $closure
+        ];
 
-        foreach ($methods as $method) {
+        if (self::$namespace)
+            $routeArray['namespace']    = ucfirst(self::$namespace);
 
-            $routeArray = [
-                'uri'       => $uri,
-                'method'    => $method,
-                'pattern'   => $pattern,
-                'callback'  => $closure
-            ];
+        if (!empty(self::$middlewares))
+            $routeArray['middlewares']  = self::$middlewares;
 
-            if (self::$namespace)
-                $routeArray['namespace']    = ucfirst(self::$namespace);
+        if (self::$domain)
+            $routeArray['domain']       = self::$domain;
 
-            if (!empty(self::$middlewares))
-                $routeArray['middlewares']  = self::$middlewares;
-
-            if (self::$domain)
-                $routeArray['domain']       = self::$domain;
-
-            self::$routes[] = $routeArray;
-
-        }
-
+        self::$routes[] = $routeArray;
     }
 
     /**
@@ -436,11 +429,25 @@ class Router
     }
 
     /**
+     * Add a Route Using Multiple Methods
+     *
+     * @param array $methods
+     * @param string $pattern
+     * @param string|callable $callback
+     */
+    public static function match($methods, $pattern, $callback)
+    {
+        foreach ($methods as $method) {
+            self::route(strtoupper($method), $pattern, $callback);
+        }
+    }
+
+    /**
      * List All Routes
      *
      * @return array
      */
-    public static function listAll()
+    public static function getRoutes()
     {
         return self::$routes;
     }
@@ -457,6 +464,13 @@ class Router
 
     public static function __callStatic($method, $args)
     {
+        if ($method == 'namespace') {
+            self::namespacer($args[0]);
+            return new self;
+        }
+    }
+
+    public function __call($method, $args) {
         if ($method == 'namespace') {
             self::namespacer($args[0]);
             return new self;
