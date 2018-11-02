@@ -27,6 +27,12 @@ class Router
     // Domain
     private static $domain      = '';
 
+    // IP
+    private static $ip          = '';
+
+    // SSL
+    private static $ssl         = false;
+
     // Not Found Callback
     private static $notFound    = '';
 
@@ -66,20 +72,26 @@ class Router
             'baseRoute'     => self::$baseRoute,
             'middlewares'   => self::$middlewares,
             'namespace'     => self::$namespace,
-            'domain'        => self::$domain
+            'domain'        => self::$domain,
+            'ip'            => self::$ip,
+            'ssl'           => self::$ssl
         ];
 
         // Call the Callable
         call_user_func($callback);
-
-        self::$groupped--;
 
         if (self::$groupped > 0) {
             self::$baseRoute    = self::$groups[self::$groupped-1]['baseRoute'];
             self::$middlewares  = self::$groups[self::$groupped-1]['middlewares'];
             self::$namespace    = self::$groups[self::$groupped-1]['namespace'];
             self::$domain       = self::$groups[self::$groupped-1]['domain'];
-        } else {
+            self::$ip           = self::$groups[self::$groupped-1]['ip'];
+            self::$ssl          = self::$groups[self::$groupped-1]['ssl'];
+        }
+        
+        self::$groupped--;
+
+        if (self::$groupped <= 0) {
             // Reset Base Route
             self::$baseRoute    = '/';
 
@@ -92,8 +104,11 @@ class Router
             // Reset Domain
             self::$domain       = '';
 
-            // Reset Group Counter
-            self::$groupped     = 0;
+            // Reset IP
+            self::$ip           = '';
+
+            // Reset SSL
+            self::$ssl          = false;
         }
     }
 
@@ -102,7 +117,7 @@ class Router
      *
      * @param string $namespace
      */
-    public static function namespacer($namespace)
+    public static function setNamespace($namespace)
     {
         // Set Namespace
         self::$namespace = $namespace;
@@ -147,6 +162,26 @@ class Router
     public static function domain($domain)
     {
         self::$domain = $domain;
+        return new self;
+    }
+
+    /**
+     * Defining Ip Address
+     *
+     * @param string|array $ip
+     */
+    public static function ip($ip)
+    {
+        self::$ip = $ip;
+        return new self;
+    }
+
+    /**
+     * Defining Request Scheme
+     */
+    public static function ssl()
+    {
+        self::$ssl = true;
         return new self;
     }
 
@@ -197,6 +232,12 @@ class Router
         if (self::$domain)
             $routeArray['domain']       = self::$domain;
 
+        if (self::$ip)
+            $routeArray['ip']           = self::$ip;
+
+        if (self::$ssl)
+            $routeArray['ssl']          = self::$ssl;
+
         self::$routes[] = $routeArray;
     }
 
@@ -206,30 +247,24 @@ class Router
     public static function execute()
     {
         $matched        = 0;
-        $methodCheck    = true;
-        $domainCheck    = true;
 
         foreach (self::$routes as $key => $val) {
 
             if (preg_match($val['pattern'], self::getCurrentUri(), $params)) {
 
                 // Checking domain
-                if (array_key_exists('domain', $val)) {
-                    if ($val['domain'] !== trim(str_replace('www.', '', $_SERVER['SERVER_NAME']), '/')) {
-                        $domainCheck = false;
-                    } else {
-                        $domainCheck = true;
-                    }
-                }
+                $domainCheck    = self::checkDomain($val);
+
+                // Checking IP
+                $ipCheck        = self::checkIp($val);
+
+                // Checking SSL
+                $sslCheck       = self::checkSSL($val);
 
                 // Checking request method
-                if ($val['method'] !== self::getRequestMethod()) {
-                    $methodCheck = false;
-                } else {
-                    $methodCheck = true;
-                }
+                $methodCheck    = self::checkMethod($val);
 
-                if ($domainCheck && $methodCheck) {
+                if ($domainCheck && $methodCheck && $ipCheck && $sslCheck) {
                     $matched++;
 
                     array_shift($params);
@@ -278,6 +313,83 @@ class Router
         } else {
             header($_SERVER['SERVER_PROTOCOL'] . ' 404 Not Found');
             throw new \Exception("Hata: Controller bulunamadı");
+        }
+    }
+
+    /**
+     * Check Domain
+     *
+     * @param array $params
+     * @return bool
+     */
+    private static function checkDomain($params)
+    {
+        if (array_key_exists('domain', $params)) {
+            if ($params['domain'] !== trim(str_replace('www.', '', $_SERVER['SERVER_NAME']), '/')) {
+                return false;
+            } else {
+                return true;
+            }
+        } else {
+            return true;
+        }
+    }
+
+    /**
+     * Check Request Method
+     *
+     * @param array $params
+     * @return bool
+     */
+    private static function checkMethod($params)
+    {
+        if ($params['method'] !== self::getRequestMethod()) {
+            return false;
+        } else {
+            return true;
+        }
+    }
+
+    /**
+     * Check IP Address
+     *
+     * @param array $params
+     * @return bool
+     */
+    private static function checkIp($params)
+    {
+        if (array_key_exists('ip', $params)) {
+            if (is_array($params['ip'])) {
+                if (!in_array($_SERVER['REMOTE_ADDR'], $params['ip']))
+                    return false;
+                else
+                    return true;
+            } else {
+                if ($_SERVER['REMOTE_ADDR'] != $params['ip'])
+                    return false;
+                else
+                    return true;
+            }
+        } else {
+            return true;
+        }
+    }
+
+    /**
+     * Check Request Scheme
+     *
+     * @param array $params
+     * @return bool
+     */
+    private static function checkSSL($params)
+    {
+        if (array_key_exists('ssl', $params) && $params['ssl'] === true) {
+            if ($_SERVER['REQUEST_SCHEME'] !== 'https')
+                return false;
+            else
+                return true;
+        } else {
+            return true;
         }
     }
 
